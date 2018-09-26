@@ -1,6 +1,5 @@
 
 <h3 align="center" style="margin-bottom: 21px;">
-  Drag-and-drop -style rearrangable grid view
   Forked for customize scrollview.
 </h3>
 
