@@ -1,10 +1,11 @@
 
 <h3 align="center" style="margin-bottom: 21px;">
   Drag-and-drop -style rearrangable grid view
+  Forked for customize scrollview.
 </h3>
 
 <p align="center">
-  <img alt="Issue Stats" src="http://i.giphy.com/gcB8YYVtL2BsA.gif">
+  <img alt="Issue Stats" src="https://github.com/RonOyama/react-native-sort-grid/blob/master/screenshot.gif">
 </p>
 
 # react-native-sortable-grid
