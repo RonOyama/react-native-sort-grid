@@ -2,13 +2,16 @@ import React, { Component } from 'react'
 import {
   StyleSheet,
   Animated,
+  Easing,
   TouchableWithoutFeedback,
   PanResponder,
   Image,
-  View
+  View,
 } from 'react-native'
 
 import _ from 'lodash'
+
+import {global} from './constant/global'
 
 // Default values
 const ITEMS_PER_ROW                   = 4
@@ -29,14 +32,12 @@ class Block extends Component {
       <TouchableWithoutFeedback
         style          = {{ flex: 1 }}
         delayLongPress = { this.props.delayLongPress }
-        onLongPress    = { () => this.props.inactive || this.props.onLongPress() }
-        onPress        = { () => this.props.inactive || this.props.onPress() }>
+        onLongPress    = { () => this.props.inactive || this.props.onLongPress() }>
 
           <View style={styles.itemImageContainer}>
             <View style={ this.props.itemWrapperStyle }>
               {this.props.children}
             </View>
-            { this.props.deletionView }
           </View>
 
       </TouchableWithoutFeedback>
@@ -46,7 +47,7 @@ class Block extends Component {
 
 class SortableGrid extends Component {
 
-    render = () =>
+    render = () => 
       <Animated.View
         style={ this._getGridStyle() }
         onLayout={this.assessGridSize}
@@ -102,6 +103,8 @@ class SortableGrid extends Component {
     this.tapIgnore         = false
     this.doubleTapWait     = false
 
+    this.offsetY = 0;
+
     this.state = {
       gridLayout: null,
       blockPositions: [],
@@ -125,7 +128,10 @@ class SortableGrid extends Component {
     return { deleteModeOn }
   }
 
-  componentWillMount = () => this.createTouchHandlers()
+  componentWillMount = () => {
+    
+    this.createTouchHandlers();
+  }
 
   componentDidMount = () => this.handleNewProps(this.props)
 
@@ -148,24 +154,56 @@ class SortableGrid extends Component {
       this._getActiveBlock().currentPosition.setOffset({ x, y })
       this._getActiveBlock().currentPosition.setValue({ x: gestureState.moveX, y: gestureState.moveY })
     }
+    this.offsetY = global._ScrollOffset; 
   }
 
   onMoveBlock = (evt, {moveX, moveY, dx, dy}) => {
+    console.log("_____fire")
     if (this.state.activeBlock != null && this._blockPositionsSet()) {
       if (this.state.deleteModeOn) return this.deleteModeMove({ x: moveX, y: moveY })
 
       if (dx != 0 || dy != 0) this.initialDragDone = true
+
+      console.log("moveY   " + moveY);
+      console.log("_ScrollOffset   " + global._ScrollOffset);
+      console.log(global._ScrollOffset - this.offsetY);
+      console.log(this.props.windowHeight * 0.8);
+      console.log(this.state.gridLayout.height );
 
       let yChokeAmount = Math.max(0, (this.activeBlockOffset.y + moveY) - (this.state.gridLayout.height - this.blockHeight))
       let xChokeAmount = Math.max(0, (this.activeBlockOffset.x + moveX) - (this.state.gridLayout.width - this.blockWidth))
       let yMinChokeAmount = Math.min(0, this.activeBlockOffset.y + moveY)
       let xMinChokeAmount = Math.min(0, this.activeBlockOffset.x + moveX)
 
-      let dragPosition = { x: moveX - xChokeAmount - xMinChokeAmount, y: moveY - yChokeAmount - yMinChokeAmount }
+      let dragPosition = { x: moveX - xChokeAmount - xMinChokeAmount, y: moveY - yChokeAmount - yMinChokeAmount + global._ScrollOffset - this.offsetY }
       this.dragPosition = dragPosition
       let originalPosition = this._getActiveBlock().origin
       let distanceToOrigin = this._getDistanceTo(originalPosition)
-      this._getActiveBlock().currentPosition.setValue(dragPosition)
+      this._getActiveBlock().currentPosition.setValue(dragPosition);
+
+      // Animated.timing(
+      //   this._getActiveBlock().currentPosition,
+      //   {
+      //     toValue: dragPosition,
+      //     duration: global._duration,
+      //     easing: Easing.quad
+      //   }
+      // ).start()
+
+
+      if (moveY > this.props.windowHeight * 0.8)  {
+        if ( global._ScrollOffset + this.props.windowHeight - this.blockHeight / 2 > this.state.gridLayout.height) {
+          return;
+        }
+          this.props.parendRef.scrollTo({x: 0, y: global._ScrollOffset + this.blockHeight / global._Count, animated: true})
+      }
+
+      if (moveY < this.props.windowHeight * 0.2)  {
+        if ( global._ScrollOffset + this.blockHeight / 2 < 0) {
+          return;
+        }
+        this.props.parendRef.scrollTo({x: 0, y: global._ScrollOffset - this.blockHeight / global._Count, animated: true})
+      }
 
       let closest = this.state.activeBlock
       let closestDistance = distanceToOrigin
@@ -209,6 +247,7 @@ class SortableGrid extends Component {
   }
 
   onReleaseBlock = (evt, gestureState) => {
+    this.offsetY = 0;
     this.returnBlockToOriginalPosition()
     if (this.state.deleteModeOn && this.state.deletionSwipePercent == 100)
       this.deleteBlock()
